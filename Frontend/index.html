@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Personal Knowledge Graph in XR - 技術的関心の進化を3D空間で可視化">
+  <title>Knowledge Graph XR</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+    }
+    
+    #renderCanvas {
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      display: block;
+    }
+
+    #controlPanelRoot {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 500;
+      max-width: 280px;
+      width: calc(100vw - 32px);
+      pointer-events: auto;
+    }
+
+    #lifecycleLegendRoot {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 510;
+      width: min(260px, calc(100vw - 32px));
+      pointer-events: none;
+    }
+
+    .kg-legend {
+      background: rgba(8, 16, 34, 0.9);
+      border: 1px solid rgba(120, 190, 255, 0.5);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #e5fbff;
+      font-family: 'Courier New', monospace;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+    }
+
+    .kg-legend-title {
+      color: #9adfff;
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .kg-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .kg-legend-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .kg-legend-swatch {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      border-radius: 999px;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+      flex: 0 0 11px;
+    }
+
+    .kg-legend-swatch-blue { background: #3380ff; }
+    .kg-legend-swatch-green { background: #34e572; }
+    .kg-legend-swatch-orange { background: #ff9633; }
+
+    .kg-panel {
+      background: rgba(8, 16, 34, 0.88);
+      border: 1px solid rgba(0, 212, 255, 0.45);
+      border-radius: 10px;
+      padding: 12px;
+      color: #d9f6ff;
+      font-family: 'Courier New', monospace;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(4px);
+    }
+
+    .kg-panel-title {
+      font-size: 15px;
+      margin-bottom: 10px;
+      color: #00d4ff;
+    }
+
+    .kg-label {
+      display: block;
+      margin: 8px 0 6px;
+      font-size: 12px;
+      color: #9adfff;
+    }
+
+    .kg-select,
+    .kg-range,
+    .kg-apply {
+      width: 100%;
+    }
+
+    .kg-select,
+    .kg-range,
+    .kg-apply,
+    .kg-checkbox-row {
+      margin-bottom: 8px;
+    }
+
+    .kg-select,
+    .kg-apply {
+      height: 34px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 212, 255, 0.4);
+      background: rgba(0, 20, 40, 0.9);
+      color: #e8fcff;
+      padding: 4px 8px;
+      font-family: inherit;
+    }
+
+    .kg-range {
+      accent-color: #00d4ff;
+    }
+
+    .kg-value {
+      display: block;
+      text-align: right;
+      font-size: 12px;
+      color: #89d8f7;
+      margin-top: -4px;
+      margin-bottom: 4px;
+    }
+
+    .kg-checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .kg-apply {
+      margin-top: 4px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .kg-apply:disabled {
+      opacity: 0.65;
+      cursor: wait;
+    }
+
+    @media (max-width: 640px) {
+      #controlPanelRoot {
+        top: 10px;
+        left: 10px;
+        width: calc(100vw - 20px);
+      }
+
+      #lifecycleLegendRoot {
+        top: auto;
+        right: 10px;
+        bottom: 10px;
+        width: min(240px, calc(100vw - 20px));
+      }
+
+      .kg-panel-title {
+        font-size: 14px;
+      }
+    }
+    
+    #loadingScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #0a0e1a 0%, #1a1a2e 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      transition: opacity 0.5s;
+    }
+    
+    #loadingScreen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .loading-text {
+      color: #00d4ff;
+      font-family: 'Courier New', monospace;
+      font-size: 24px;
+      margin-top: 20px;
+      text-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+    }
+    
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(0, 212, 255, 0.2);
+      border-top: 4px solid #00d4ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="loadingScreen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading Knowledge Universe...</div>
+  </div>
+  <div id="controlPanelRoot"></div>
+  <div id="lifecycleLegendRoot"></div>
+  <canvas id="renderCanvas"></canvas>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

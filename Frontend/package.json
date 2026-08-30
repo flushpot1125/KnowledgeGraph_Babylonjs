@@ -1,0 +1,28 @@
+{
+  "name": "knowledge-graph-xr",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:https": "vite --host 0.0.0.0 --port 8080 --https",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "preview:https": "vite preview --host 0.0.0.0 --port 8080 --https",
+    "api": "tsx server.ts"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^7.0.0",
+    "@babylonjs/gui": "^7.0.0",
+    "@babylonjs/loaders": "^7.0.0",
+    "express": "^5.2.1",
+    "neo4j-driver": "^6.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.2.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
+    "typescript": "^7.0.2",
+    "vite": "^6.0.0"
+  }
+}
